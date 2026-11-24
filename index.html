@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Today — 極簡每日計畫網站，整理待辦、習慣、日記與行事曆。" />
+  <meta name="theme-color" content="#f5f5f5" />
+  <title>Today — 每日計畫</title>
+  <style>
+    :root {
+      --bg-base: #EEF1F6;
+      --mesh-1: rgba(0, 122, 255, 0.14);
+      --mesh-2: rgba(175, 82, 222, 0.12);
+      --mesh-3: rgba(52, 199, 89, 0.10);
+      --glass-card: rgba(255, 255, 255, 0.68);
+      --glass-heavy: rgba(255, 255, 255, 0.82);
+      --glass-border: rgba(255, 255, 255, 0.75);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+      --pill-bg: rgba(120, 120, 128, 0.12);
+      --text-primary: #000000;
+      --text-secondary: rgba(60, 60, 67, 0.62);
+      --accent: #007AFF;
+      --green: #34C759;
+      --orange: #FF9500;
+      --purple: #AF52DE;
+      --separator: rgba(60, 60, 67, 0.12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-base: #070709;
+        --mesh-1: rgba(10, 132, 255, 0.22);
+        --mesh-2: rgba(191, 90, 242, 0.18);
+        --mesh-3: rgba(48, 209, 88, 0.12);
+        --glass-card: rgba(28, 28, 30, 0.66);
+        --glass-heavy: rgba(36, 36, 38, 0.82);
+        --glass-border: rgba(255, 255, 255, 0.14);
+        --glass-shadow: 0 10px 36px rgba(0, 0, 0, 0.45);
+        --pill-bg: rgba(120, 120, 128, 0.24);
+        --text-primary: #FFFFFF;
+        --text-secondary: rgba(235, 235, 245, 0.58);
+        --accent: #0A84FF;
+        --green: #30D158;
+        --orange: #FF9F0A;
+        --purple: #BF5AF2;
+        --separator: rgba(84, 84, 88, 0.36);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background-color: var(--bg-base);
+      background-image:
+        radial-gradient(circle at 12% 8%, var(--mesh-1), transparent 46%),
+        radial-gradient(circle at 88% 22%, var(--mesh-2), transparent 48%),
+        radial-gradient(circle at 50% 90%, var(--mesh-3), transparent 52%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: calc(106px + env(safe-area-inset-bottom));
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 頂部純淨 iOS 大標題列（無按鈕干擾） */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: linear-gradient(to bottom, var(--glass-heavy), rgba(255,255,255,0));
+      backdrop-filter: blur(22px) saturate(180%);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      padding: calc(14px + env(safe-area-inset-top)) 22px 12px;
+      margin-top: calc(-1 * env(safe-area-inset-top));
+    }
+
+    @media (prefers-color-scheme: dark) {
+      header {
+        background: linear-gradient(to bottom, rgba(15, 15, 18, 0.85), rgba(15, 15, 18, 0));
+      }
+    }
+
+    .date-sub {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.2px;
+    }
+
+    h1 {
+      margin: 2px 0 0;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.7px;
+    }
+
+    main {
+      padding: 8px 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* 毛玻璃通用卡片樣式 */
+    .glass-surface {
+      background: var(--glass-card);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border: 0.5px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      border-radius: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 6px 6px 9px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-badge {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .defer-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    /* 待辦毛玻璃列表 */
+    .ios-list {
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      padding: 15px 16px;
+      border-bottom: 0.5px solid var(--separator);
+      transition: background-color 0.15s ease;
+    }
+    .task-item:last-child { border-bottom: none; }
+
+    .check-btn {
+      width: 23px;
+      height: 23px;
+      border-radius: 50%;
+      border: 2px solid var(--text-secondary);
+      margin-right: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .task-item.done .check-btn {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .check-btn svg {
+      width: 13px;
+      height: 13px;
+      stroke: #fff;
+      stroke-width: 3;
+      fill: none;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.2s ease;
+    }
+
+    .task-item.done .check-btn svg { opacity: 1; transform: scale(1); }
+
+    .task-info { flex: 1; min-width: 0; }
+    .task-title {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .task-item.done .task-title {
+      text-decoration: line-through;
+      color: var(--text-secondary);
+    }
+
+    .task-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+      flex-wrap: wrap;
+    }
+
+    .task-note {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .daily-tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(0, 122, 255, 0.14);
+      padding: 1px 7px;
+      border-radius: 8px;
+    }
+
+    .focus-star {
+      color: var(--orange);
+      font-size: 13px;
+      margin-right: 5px;
+    }
+
+    .del-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 15px;
+      padding: 4px 6px;
+      cursor: pointer;
+      opacity: 0.45;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* 隨手日記（純淨毛玻璃卡片，無格線） */
+    .journal-card {
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .mood-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .mood-bar::-webkit-scrollbar { display: none; }
+
+    .mood-chip {
+      background: var(--pill-bg);
+      border: 0.5px solid transparent;
+      border-radius: 20px;
+      padding: 5px 11px;
+      font-size: 13px;
+      white-space: nowrap;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+    }
+
+    .mood-chip.active {
+      background: rgba(0, 122, 255, 0.16);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .mood-add {
+      color: var(--text-secondary);
+      font-weight: 600;
+      padding: 5px 10px;
+    }
+
+    .journal-textarea {
+      width: 100%;
+      min-height: 150px;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 15px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      user-select: text;
+    }
+
+    .journal-textarea::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .journal-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 0.5px solid var(--separator);
+    }
+
+    /* 週 / 月 / 年 視圖卡片 */
+    .week-card {
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .week-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .week-card-title { font-size: 15px; font-weight: 600; }
+    .week-card-count { font-size: 12px; color: var(--text-secondary); }
+    .week-preview { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+
+    .calendar-card {
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .cal-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .cal-nav button {
+      background: var(--pill-bg);
+      border: none;
+      color: var(--accent);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      text-align: center;
+    }
+    .cal-dow {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding-bottom: 6px;
+    }
+    .cal-cell {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--pill-bg);
+    }
+    .cal-cell.empty { background: transparent; cursor: default; }
+    .cal-cell.selected { background: var(--accent); color: #fff; font-weight: 700; }
+    .cal-dots {
+      display: flex;
+      gap: 3px;
+      margin-top: 3px;
+    }
+    .cal-dot-task { width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+    .cal-dot-note { width: 4px; height: 4px; border-radius: 50%; background: var(--purple); }
+    .cal-cell.selected .cal-dot-task,
+    .cal-cell.selected .cal-dot-note { background: #fff; }
+
+    .year-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .month-box {
+      padding: 14px 12px;
+      cursor: pointer;
+    }
+    .month-box h3 { margin: 0 0 6px; font-size: 16px; }
+    .month-box p { margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+
+    /* ================= 左下角 iOS 懸浮控制中心 ================= */
+    .cc-anchor {
+      position: fixed;
+      left: 20px;
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      z-index: 35;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    /* 控制中心展開面板 */
+    .cc-popover {
+      width: 268px;
+      background: var(--glass-heavy);
+      backdrop-filter: blur(36px) saturate(210%);
+      -webkit-backdrop-filter: blur(36px) saturate(210%);
+      border: 0.5px solid var(--glass-border);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+      border-radius: 26px;
+      padding: 14px;
+      margin-bottom: 12px;
+      transform-origin: bottom left;
+      transform: scale(0.85) translateY(12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .cc-popover.open {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .cc-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin: 2px 4px 8px;
+      letter-spacing: 0.3px;
+    }
+
+    .cc-grid-views {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .cc-tile {
+      background: var(--pill-bg);
+      border: none;
+      border-radius: 14px;
+      padding: 10px 4px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .cc-tile:active { transform: scale(0.94); }
+    .cc-tile.active {
+      background: var(--accent);
+      color: #FFFFFF;
+    }
+
+    .cc-row-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .cc-action-btn {
+      background: var(--pill-bg);
+      border: none;
+      border-radius: 14px;
+      padding: 11px 10px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .cc-action-btn:active { transform: scale(0.95); }
+
+    /* 左下角控制中心觸發膠囊按鈕 */
+    .cc-trigger {
+      height: 52px;
+      padding: 0 16px;
+      border-radius: 26px;
+      background: var(--glass-heavy);
+      backdrop-filter: blur(28px) saturate(200%);
+      -webkit-backdrop-filter: blur(28px) saturate(200%);
+      border: 0.5px solid var(--glass-border);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .cc-trigger:active { transform: scale(0.94); }
+
+    .cc-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+    }
+    .cc-icon span {
+      display: block;
+      height: 2px;
+      width: 100%;
+      background: var(--text-primary);
+      border-radius: 2px;
+      position: relative;
+    }
+    .cc-icon span::after {
+      content: '';
+      position: absolute;
+      top: -2.5px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .cc-icon span:first-child::after { right: 2px; }
+    .cc-icon span:last-child::after { left: 2px; }
+
+    /* 右下角毛玻璃新增按鈕 */
+    .fab {
+      position: fixed;
+      right: 20px;
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      width: 52px;
+      height: 52px;
+      border-radius: 26px;
+      background: rgba(0, 122, 255, 0.88);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 0.5px solid rgba(255, 255, 255, 0.45);
+      color: #fff;
+      font-size: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 26px rgba(0, 122, 255, 0.35);
+      cursor: pointer;
+      z-index: 35;
+      transition: transform 0.15s ease;
+    }
+    .fab:active { transform: scale(0.92); }
+
+    /* 遮罩與 Bottom Sheet */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--glass-heavy);
+      backdrop-filter: blur(36px) saturate(210%);
+      -webkit-backdrop-filter: blur(36px) saturate(210%);
+      border-top: 0.5px solid var(--glass-border);
+      border-radius: 24px 24px 0 0;
+      padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
+      z-index: 50;
+      transform: translateY(100%);
+      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .sheet.open { transform: translateY(0); }
+
+    .grabber {
+      width: 36px;
+      height: 5px;
+      background: var(--pill-bg);
+      border-radius: 3px;
+      margin: 0 auto 14px;
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .sheet-header button {
+      background: none;
+      border: none;
+      font-size: 16px;
+      color: var(--accent);
+      cursor: pointer;
+    }
+    .sheet-header button.save { font-weight: 600; }
+
+    .input-group {
+      background: var(--pill-bg);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .input-group input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 16px;
+      outline: none;
+    }
+
+    .toggle-switch {
+      width: 48px;
+      height: 28px;
+      border-radius: 14px;
+      background: rgba(120, 120, 128, 0.25);
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-switch.on.orange { background: var(--orange); }
+    .toggle-switch.on.blue { background: var(--accent); }
+    .toggle-knob {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #fff;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .toggle-switch.on .toggle-knob { transform: translateX(20px); }
+
+    .toast {
+      position: fixed;
+      top: calc(16px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translate(-50%, -80px);
+      background: var(--glass-heavy);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 0.5px solid var(--glass-border);
+      color: var(--text-primary);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+      z-index: 60;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+    .toast.show { transform: translate(-50%, 0); }
+
+
+    /* ===== Website presentation: monochrome frosted glass ===== */
+    :root {
+      color-scheme: light;
+      --bg-base: #f5f5f5;
+      --mesh-1: rgba(0,0,0,.025);
+      --mesh-2: rgba(0,0,0,.018);
+      --mesh-3: rgba(0,0,0,.012);
+      --glass-card: rgba(255,255,255,.76);
+      --glass-heavy: rgba(255,255,255,.90);
+      --glass-border: rgba(255,255,255,.92);
+      --glass-shadow: 0 10px 34px rgba(0,0,0,.065);
+      --pill-bg: rgba(0,0,0,.055);
+      --text-primary: #111;
+      --text-secondary: rgba(0,0,0,.52);
+      --accent: #111;
+      --green: #111;
+      --orange: #111;
+      --purple: #111;
+      --separator: rgba(0,0,0,.10);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg-base: #080808;
+        --mesh-1: rgba(255,255,255,.035);
+        --mesh-2: rgba(255,255,255,.022);
+        --mesh-3: rgba(255,255,255,.015);
+        --glass-card: rgba(28,28,28,.80);
+        --glass-heavy: rgba(32,32,32,.92);
+        --glass-border: rgba(255,255,255,.13);
+        --glass-shadow: 0 10px 34px rgba(0,0,0,.42);
+        --pill-bg: rgba(255,255,255,.09);
+        --text-primary: #f7f7f7;
+        --text-secondary: rgba(255,255,255,.56);
+        --accent: #f5f5f5;
+        --green: #f5f5f5;
+        --orange: #f5f5f5;
+        --purple: #f5f5f5;
+        --separator: rgba(255,255,255,.13);
+      }
+    }
+    html { min-height:100%; background:var(--bg-base); }
+    body {
+      min-height:100vh;
+      min-height:100svh;
+      background-image:
+        radial-gradient(ellipse at 8% 0%, var(--mesh-1), transparent 44%),
+        radial-gradient(ellipse at 100% 24%, var(--mesh-2), transparent 44%),
+        radial-gradient(ellipse at 46% 100%, var(--mesh-3), transparent 50%);
+      background-attachment:fixed;
+      padding-bottom:calc(112px + env(safe-area-inset-bottom));
+    }
+    header {
+      background:linear-gradient(to bottom, color-mix(in srgb, var(--bg-base) 82%, transparent), transparent);
+      padding-left:max(22px, calc((100vw - 680px)/2));
+      padding-right:max(22px, calc((100vw - 680px)/2));
+    }
+    h1 { font-size:clamp(32px, 5vw, 40px); letter-spacing:-1.2px; }
+    main { width:min(100%, 720px); max-width:720px; padding:12px 22px 34px; }
+    .glass-surface {
+      background:var(--glass-card);
+      -webkit-backdrop-filter:blur(24px) saturate(135%);
+      backdrop-filter:blur(24px) saturate(135%);
+      border:1px solid var(--glass-border);
+      box-shadow:var(--glass-shadow);
+      border-radius:22px;
+    }
+    .daily-tag, .mood-chip.active {
+      color:var(--text-primary);
+      background:var(--pill-bg);
+      border-color:var(--text-secondary);
+    }
+    .focus-star { color:var(--text-primary); }
+    .cc-anchor {
+      left:max(18px, env(safe-area-inset-left));
+      bottom:calc(18px + env(safe-area-inset-bottom));
+      z-index:45;
+    }
+    .cc-popover {
+      width:min(286px, calc(100vw - 36px));
+      padding:13px;
+      margin-bottom:10px;
+      border:1px solid var(--glass-border);
+      border-radius:26px;
+      background:var(--glass-heavy);
+      -webkit-backdrop-filter:blur(38px) saturate(125%);
+      backdrop-filter:blur(38px) saturate(125%);
+      box-shadow:0 18px 48px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.28);
+    }
+    .cc-grid-views { display:flex; flex-direction:column; gap:5px; margin-bottom:8px; }
+    .cc-tile {
+      width:100%; min-height:43px; padding:10px 12px;
+      display:flex; flex-direction:row; align-items:center; justify-content:flex-start;
+      gap:12px; border:0; border-radius:13px; background:transparent;
+      color:var(--text-primary); font-size:14px; font-weight:600; text-align:left;
+    }
+    .cc-tile span:first-child {
+      width:20px; color:var(--text-secondary); font-size:17px; line-height:1; text-align:center;
+    }
+    .cc-tile.active { background:#111; color:#fff; box-shadow:none; }
+    .cc-tile.active span:first-child { color:inherit; }
+    .cc-row-actions {
+      display:flex; flex-direction:column; gap:5px; margin-top:8px; padding-top:8px;
+      border-top:1px solid var(--separator);
+    }
+    .cc-action-btn {
+      width:100%; min-height:42px; justify-content:flex-start; padding:10px 12px;
+      border-radius:13px; background:transparent; color:var(--text-primary);
+      font-size:14px; font-weight:600;
+    }
+    .cc-tile:active, .cc-action-btn:active { background:var(--pill-bg); transform:scale(.985); }
+    .cc-trigger {
+      min-height:52px; border:1px solid var(--glass-border); border-radius:28px;
+      background:var(--glass-heavy); color:var(--text-primary);
+      -webkit-backdrop-filter:blur(30px) saturate(125%);
+      backdrop-filter:blur(30px) saturate(125%);
+      box-shadow:0 7px 24px rgba(0,0,0,.11), inset 0 1px 0 rgba(255,255,255,.25);
+    }
+    .cc-icon span::after { background:var(--text-primary); }
+    .fab {
+      right:max(18px, env(safe-area-inset-right));
+      bottom:calc(18px + env(safe-area-inset-bottom));
+      width:54px; height:54px; border-radius:50%;
+      background:#111; color:#fff; border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 8px 24px rgba(0,0,0,.18);
+    }
+    .backdrop { z-index:40; background:rgba(0,0,0,.18); -webkit-backdrop-filter:blur(7px); backdrop-filter:blur(7px); }
+    .cc-anchor { z-index:45; }
+    .sheet {
+      width:100%; max-width:520px; left:50%; right:auto; margin:0;
+      transform:translate(-50%, 100%);
+      border:1px solid var(--glass-border); border-bottom:0;
+      background:var(--glass-heavy);
+      -webkit-backdrop-filter:blur(38px) saturate(125%);
+      backdrop-filter:blur(38px) saturate(125%);
+    }
+    .sheet.open { transform:translate(-50%, 0); }
+    .input-group { background:var(--pill-bg); }
+    .toggle-switch.on.orange, .toggle-switch.on.blue { background:var(--text-primary); }
+    .toggle-switch.on .toggle-knob { background:var(--bg-base); }
+    button { font:inherit; }
+    button:focus-visible, textarea:focus-visible, input:focus-visible { outline:2px solid var(--text-primary); outline-offset:3px; }
+    @media (prefers-color-scheme: dark) {
+      .cc-tile.active, .fab { background:#f5f5f5; color:#080808; }
+      .cc-tile.active span:first-child { color:inherit; }
+    }
+    @media (max-width:600px) {
+      main { padding-left:16px; padding-right:16px; }
+      header { padding-left:20px; padding-right:20px; }
+    }
+    @media (max-width:360px) {
+      .cc-popover { width:min(270px, calc(100vw - 30px)); }
+      .cc-trigger { padding-left:14px; padding-right:14px; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *, *::before, *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; }
+    }
+
+
+    /* ===== Mobile-first touch improvements ===== */
+    @media (max-width: 600px) {
+      html, body { width:100%; overflow-x:hidden; }
+      body { padding-bottom:calc(126px + env(safe-area-inset-bottom)); }
+      header { padding:calc(12px + env(safe-area-inset-top)) 18px 10px; }
+      h1 { font-size:32px; line-height:1.12; }
+      main { width:100%; padding:10px 14px 28px; }
+
+      /* Keep the floating controls clear of the phone's home indicator. */
+      .cc-anchor { left:12px; bottom:calc(12px + env(safe-area-inset-bottom)); }
+      .cc-trigger { min-height:54px; padding:0 16px; font-size:15px; }
+      .fab { right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); width:56px; height:56px; }
+
+      /* Open the control center as a roomy panel instead of a tiny popover. */
+      .cc-popover {
+        position:fixed;
+        left:12px; right:12px;
+        bottom:calc(78px + env(safe-area-inset-bottom));
+        width:auto;
+        max-width:440px;
+        max-height:min(68dvh, 520px);
+        overflow-y:auto;
+        overscroll-behavior:contain;
+        margin:0 auto;
+        padding:16px;
+        border-radius:24px;
+        transform-origin:bottom left;
+      }
+      .cc-grid-views { gap:6px; }
+      .cc-tile { min-height:50px; padding:12px 14px; font-size:15px; border-radius:14px; }
+      .cc-row-actions { gap:6px; }
+      .cc-action-btn { min-height:50px; padding:12px 14px; font-size:15px; }
+
+      /* Larger touch targets for tasks, moods and calendar navigation. */
+      .task-item { min-height:64px; padding:14px 12px; gap:4px; }
+      .check-btn { width:28px; height:28px; margin-right:10px; }
+      .del-btn { min-width:42px; min-height:42px; font-size:18px; opacity:.75; }
+      .defer-btn { min-height:40px; padding:8px 4px; font-size:13px; }
+      .mood-bar { gap:8px; padding:2px 0 6px; }
+      .mood-chip { min-height:40px; padding:8px 13px; font-size:14px; }
+      .journal-card { padding:14px; }
+      .journal-textarea { min-height:170px; font-size:16px; }
+      .cal-nav button { width:42px; height:42px; font-size:20px; }
+      .cal-grid { gap:4px; }
+      .cal-cell { min-height:38px; border-radius:10px; font-size:13px; }
+      .cal-dow { font-size:10px; }
+      .week-card { min-height:76px; padding:16px 14px; }
+      .month-box { min-height:92px; padding:12px 9px; }
+      .month-box h3 { font-size:15px; }
+
+      /* Keep forms usable above the on-screen keyboard. */
+      .sheet {
+        max-height:88dvh;
+        overflow-y:auto;
+        padding:12px 16px calc(20px + env(safe-area-inset-bottom));
+      }
+      .sheet-header button { min-width:52px; min-height:44px; }
+      .input-group { min-height:52px; padding:13px 14px; }
+      .toggle-switch { min-width:48px; min-height:28px; }
+    }
+    @media (max-width:380px) {
+      main { padding-left:11px; padding-right:11px; }
+      header { padding-left:16px; padding-right:16px; }
+      .year-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .cal-grid { gap:3px; }
+      .cal-cell { min-height:34px; font-size:12px; }
+      .cc-popover { left:10px; right:10px; }
+    }
+    @media (hover:none) and (pointer:coarse) {
+      button, .week-card, .month-box, .cal-cell, .toggle-switch { touch-action:manipulation; }
+    }
+
+
+    /* ===== Right-side compact vertical control dock ===== */
+    .cc-anchor {
+      position: fixed; top: 50%; right: max(10px, env(safe-area-inset-right));
+      left: auto; bottom: auto; transform: translateY(-50%);
+      z-index: 45; display: block; width: 58px;
+    }
+    .cc-popover {
+      width: 58px; margin: 0; padding: 7px 5px; border-radius: 24px;
+      opacity: 1; pointer-events: auto; transform: none;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      background: var(--glass-heavy); border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 34px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.32);
+      -webkit-backdrop-filter: blur(30px) saturate(140%);
+      backdrop-filter: blur(30px) saturate(140%);
+    }
+    .cc-label, .cc-trigger { display: none !important; }
+    .cc-grid-views { width: 100%; display: flex; flex-direction: column; gap: 4px; margin: 0; }
+    .cc-tile {
+      width: 46px; min-height: 48px; padding: 5px 2px; border-radius: 15px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      gap: 2px; background: transparent; color: var(--text-secondary);
+      font-size: 10px; font-weight: 600; line-height: 1.1; text-align: center;
+    }
+    .cc-tile span:first-child { width: auto; color: currentColor; font-size: 19px; line-height: 1.15; }
+    .cc-tile span:last-child { font-size: 10px; }
+    .cc-tile.active { color: #fff; background: #171717; box-shadow: 0 3px 10px rgba(0,0,0,.15); }
+    .cc-row-actions {
+      width: 100%; display: flex; flex-direction: column; gap: 4px;
+      margin: 3px 0 0; padding: 6px 0 0; border-top: 1px solid var(--separator);
+    }
+    .cc-action-btn {
+      width: 46px; min-height: 46px; padding: 4px 2px; border-radius: 14px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      gap: 2px; background: transparent; color: var(--text-primary); font-size: 17px; line-height: 1.1;
+    }
+    .cc-action-btn span { font-size: 9px; line-height: 1.1; text-align: center; max-width: 42px; overflow-wrap: anywhere; }
+    .cc-tile:active, .cc-action-btn:active { transform: scale(.94); background: var(--pill-bg); }
+    main { padding-right: 86px; }
+    header { padding-right: max(86px, calc((100vw - 680px)/2)); }
+    .fab { right: max(84px, calc(env(safe-area-inset-right) + 78px)); }
+    @media (max-width: 600px) {
+      main { padding-left: 14px; padding-right: 78px; }
+      header { padding-left: 16px; padding-right: 78px; }
+      .cc-anchor { right: max(7px, env(safe-area-inset-right)); width: 54px; }
+      .cc-popover { width: 54px; padding: 6px 3px; border-radius: 21px; }
+      .cc-tile, .cc-action-btn { width: 44px; min-height: 45px; }
+      .fab { right: max(70px, calc(env(safe-area-inset-right) + 66px)); bottom: calc(16px + env(safe-area-inset-bottom)); }
+    }
+    @media (max-height: 560px) {
+      .cc-anchor { top: auto; bottom: calc(10px + env(safe-area-inset-bottom)); transform: none; }
+      .cc-popover { flex-direction: row; width: auto; }
+      .cc-grid-views, .cc-row-actions { flex-direction: row; width: auto; }
+      .cc-row-actions { border-top: 0; border-left: 1px solid var(--separator); margin: 0 0 0 4px; padding: 0 0 0 5px; }
+      .cc-tile, .cc-action-btn { min-height: 42px; }
+    }
+    @media (prefers-color-scheme: dark) { .cc-tile.active { background: #f5f5f5; color: #080808; } }
+
+  </style>
+</head>
+<body>
+
+  <div class="toast" id="toast"></div>
+  <div class="backdrop" id="backdrop"></div>
+
+  <!-- 純淨大標題列（主頁僅保留日期與「今天」） -->
+  <header>
+    <div class="date-sub" id="subLabel"></div>
+    <h1 id="mainTitle"></h1>
+  </header>
+
+  <main id="appContent"></main>
+
+  <!-- 右側直向懸浮控制列 -->
+  <nav class="cc-anchor" aria-label="快速檢視控制列">
+    <div class="cc-popover open" id="ccPopover">
+      <div class="cc-label" id="ccViewLabel"></div>
+      <div class="cc-grid-views" id="viewSwitcher">
+        <button class="cc-tile active" data-view="day" aria-label="Today" title="Today"><span aria-hidden="true">◷</span><span data-label="day"></span></button>
+        <button class="cc-tile" data-view="week" aria-label="Week" title="Week"><span aria-hidden="true">▤</span><span data-label="week"></span></button>
+        <button class="cc-tile" data-view="month" aria-label="Month" title="Month"><span aria-hidden="true">▦</span><span data-label="month"></span></button>
+        <button class="cc-tile" data-view="year" aria-label="Year" title="Year"><span aria-hidden="true">▥</span><span data-label="year"></span></button>
+      </div>
+      <div class="cc-row-actions">
+        <button class="cc-action-btn" id="todayBtn" aria-label="Back to today" title="Back to today">⌖ <span id="todayLabel"></span></button>
+        <button class="cc-action-btn" id="langBtn" aria-label="Switch language" title="Switch language">文 <span id="langLabel"></span></button>
+      </div>
+    </div>
+    <button class="cc-trigger" id="ccTrigger" aria-hidden="true" tabindex="-1"></button>
+  </nav>
+
+  <!-- 右下角毛玻璃新增按鈕 -->
+  <button class="fab" id="openSheetBtn" aria-label="Add">＋</button>
+
+  <!-- 新增任務 Bottom Sheet -->
+  <div class="sheet" id="sheet">
+    <div class="grabber"></div>
+    <div class="sheet-header">
+      <button id="cancelBtn"></button>
+      <strong style="font-size:16px;" id="sheetTitle"></strong>
+      <button class="save" id="saveBtn"></button>
+    </div>
+    <div class="input-group">
+      <input type="text" id="taskInput" />
+    </div>
+    <div class="input-group">
+      <input type="text" id="noteInput" />
+    </div>
+    <div class="input-group">
+      <span style="font-size:15px;" id="dailyLabel"></span>
+      <div class="toggle-switch" id="dailyToggle"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="input-group">
+      <span style="font-size:15px;" id="focusLabel"></span>
+      <div class="toggle-switch" id="focusToggle"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+
+  <script>
+
+    const I18N = {
+      'zh-TW': {
+        langSwitch: 'English',
+        today: '回到今天',
+        ccViewsTitle: '控制中心 · 檢視模式',
+        views: { day: '今天', week: '週', month: '月', year: '年' },
+        todayPlan: '今天',
+        planSuffix: '計畫',
+        weekPrefix: '第',
+        weekSuffix: '週',
+        monthSuffix: '月',
+        yearTitle: '年',
+        yearSub: '年度軌跡與目標',
+        todoTitle: '待辦事項',
+        deferBtn: '順延至明天 ↷',
+        deferredToast: (n) => `已順延 ${n} 項未完成任務至明天`,
+        emptyTasks: '沒有待辦事項，點擊右下角 ＋ 新增',
+        dailyBadge: '每天',
+        journalTitle: '隨手日記',
+        journalPlaceholder: '寫下今天的想法、心情或一件小事...',
+        autoSaved: '自動儲存',
+        savedToast: '已儲存 ✓',
+        chars: (n) => `${n} 字`,
+        newTask: '新增任務',
+        cancel: '取消',
+        add: '加入',
+        taskPlaceholder: '想完成什麼事？（無時間限制）',
+        notePlaceholder: '備註（選填）',
+        dailyToggle: '每天重複 ↻',
+        focusToggle: '標記重點 ★',
+        noTask: '無任務',
+        items: (d, t) => `${d}/${t} 項`,
+        clickPlan: '點擊規劃這一天或寫日記',
+        hasPlan: '有計畫',
+        hasJournal: '有日記',
+        summaryPrefix: '摘要',
+        openDay: '打開當日 ›',
+        tasksSummary: (d, t) => `任務：${d}/${t} 項完成`,
+        journalSummary: (txt) => `日記：${txt || '尚未撰寫'}`,
+        monthStats: (t, j) => `${t} 項計畫<br>${j} 篇日記`,
+        yearGoalTitle: '年度願景與關鍵字',
+        yearGoalPlaceholder: '寫下今年想達成的目標或關鍵字...',
+        addMoodPrompt: '輸入新的心情標籤（例如：☕️ 放空）：',
+        delMoodConfirm: (m) => `要移除「${m}」這個標籤嗎？`,
+        dows: ['日', '一', '二', '三', '四', '五', '六'],
+        weekDows: ['週一', '週二', '週三', '週四', '週五', '週六', '週日'],
+        defaultMoods: ['☀️ 充實', '🌿 平靜', '⚡️ 專注', '☁️ 疲憊', '✨ 靈感'],
+        formatDate: (y, m, d, dow) => `${y}年${m}月${d}日 週${dow}`,
+        formatShortDate: (m, d) => `${m}/${d}`
+      },
+      'en': {
+        langSwitch: '繁體中文',
+        today: 'Back to Today',
+        ccViewsTitle: 'Control Center · View',
+        views: { day: 'Today', week: 'Week', month: 'Month', year: 'Year' },
+        todayPlan: 'Today',
+        planSuffix: 'Plan',
+        weekPrefix: 'Week',
+        weekSuffix: '',
+        monthSuffix: '',
+        yearTitle: '',
+        yearSub: 'Year Overview & Goals',
+        todoTitle: 'To-Do',
+        deferBtn: 'Move to Tomorrow ↷',
+        deferredToast: (n) => `Moved ${n} unfinished item(s) to tomorrow`,
+        emptyTasks: 'No tasks yet. Tap ＋ to add one freely.',
+        dailyBadge: 'Daily',
+        journalTitle: 'Journal',
+        journalPlaceholder: 'Write down thoughts, reflections, or a moment from today...',
+        autoSaved: 'Auto-saved',
+        savedToast: 'Saved ✓',
+        chars: (n) => `${n} chars`,
+        newTask: 'New Task',
+        cancel: 'Cancel',
+        add: 'Add',
+        taskPlaceholder: 'What would you like to do? (No time required)',
+        notePlaceholder: 'Note (optional)',
+        dailyToggle: 'Repeat Every Day ↻',
+        focusToggle: 'Mark as Priority ★',
+        noTask: 'No tasks',
+        items: (d, t) => `${d}/${t} done`,
+        clickPlan: 'Tap to plan this day or write a note',
+        hasPlan: 'Tasks',
+        hasJournal: 'Journal',
+        summaryPrefix: 'Summary',
+        openDay: 'Open Day ›',
+        tasksSummary: (d, t) => `Tasks: ${d}/${t} completed`,
+        journalSummary: (txt) => `Journal: ${txt || 'Not written yet'}`,
+        monthStats: (t, j) => `${t} tasks<br>${j} notes`,
+        yearGoalTitle: 'Yearly Vision & Keywords',
+        yearGoalPlaceholder: 'Write your goals or themes for the year...',
+        addMoodPrompt: 'Enter a new mood tag (e.g. ☕️ Calm):',
+        delMoodConfirm: (m) => `Remove mood tag "${m}"?`,
+        dows: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        weekDows: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        defaultMoods: ['☀️ Good', '🌿 Calm', '⚡️ Focus', '☁️ Tired', '✨ Idea'],
+        formatDate: (y, m, d, dow) => `${dow}, ${m}/${d}/${y}`,
+        formatShortDate: (m, d) => `${m}/${d}`
+      }
+    };
+
+    const STORAGE_KEY = 'apple_ios_planner_v4';
+    let lang = localStorage.getItem('apple_ios_planner_lang') || 'zh-TW';
+    let currentView = 'day';
+    let selectedDate = toISO(new Date());
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    let isFocus = false;
+    let isDaily = false;
+    let ccOpen = false;
+
+    const t = () => I18N[lang];
+
+    function toISO(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function parseISO(iso) {
+      const [y, m, d] = iso.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    const loadStore = () => {
+      let raw = {};
+      try {
+        raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
+      } catch (error) {
+        console.warn('Planner data could not be parsed; starting with an empty view.', error);
+      }
+      return {
+        days: raw.days && typeof raw.days === 'object' ? raw.days : {},
+        dailyHabits: Array.isArray(raw.dailyHabits) ? raw.dailyHabits : [],
+        goals: raw.goals && typeof raw.goals === 'object' ? raw.goals : {},
+        moods: Array.isArray(raw.moods) ? raw.moods : [...I18N['zh-TW'].defaultMoods]
+      };
+    };
+    const saveStore = (store) => localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+
+    function getDayRecord(store, iso) {
+      if (!store.days[iso]) {
+        store.days[iso] = { tasks: [], doneHabits: [], journal: '', mood: '' };
+      }
+      if (!store.days[iso].doneHabits) store.days[iso].doneHabits = [];
+      return store.days[iso];
+    }
+
+    function getCombinedTasks(store, iso) {
+      const rec = getDayRecord(store, iso);
+      const habits = (store.dailyHabits || []).map(h => ({
+        id: h.id,
+        title: h.title,
+        note: h.note || '',
+        focus: !!h.focus,
+        daily: true,
+        done: rec.doneHabits.includes(h.id)
+      }));
+      const normal = (rec.tasks || []).map(x => ({ ...x, daily: false }));
+      return [...habits, ...normal];
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    // 新訪客保持空白畫面；原有資料仍沿用 apple_ios_planner_v4。
+
+    // 控制中心開關與遮罩控制
+    const ccPopover = document.getElementById('ccPopover');
+    const backdrop = document.getElementById('backdrop');
+    const sheet = document.getElementById('sheet');
+
+    function setCC(open) {
+      // 右側控制列常駐顯示，不再使用大型彈出選單或遮罩
+      ccOpen = false;
+      ccPopover.classList.add('open');
+      backdrop.classList.remove('open');
+    }
+
+    document.getElementById('ccTrigger').onclick = (e) => {
+      e.stopPropagation();
+      setCC(!ccOpen);
+    };
+
+    backdrop.onclick = () => {
+      setCC(false);
+      closeSheet();
+    };
+
+    document.getElementById('langBtn').onclick = () => {
+      lang = lang === 'zh-TW' ? 'en' : 'zh-TW';
+      localStorage.setItem('apple_ios_planner_lang', lang);
+      document.documentElement.lang = lang;
+      applyStaticI18n();
+      render();
+      setCC(false);
+    };
+
+    document.querySelectorAll('.cc-tile').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.cc-tile').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentView = btn.dataset.view;
+        const d = parseISO(selectedDate);
+        calYear = d.getFullYear();
+        calMonth = d.getMonth();
+        setCC(false);
+        render();
+      };
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        setCC(false);
+        closeSheet();
+      }
+    });
+
+    document.getElementById('todayBtn').onclick = () => {
+      const now = new Date();
+      selectedDate = toISO(now);
+      calYear = now.getFullYear();
+      calMonth = now.getMonth();
+      currentView = 'day';
+      document.querySelectorAll('.cc-tile').forEach(b => b.classList.toggle('active', b.dataset.view === 'day'));
+      setCC(false);
+      render();
+    };
+
+    function applyStaticI18n() {
+      const loc = t();
+      document.getElementById('ccViewLabel').textContent = loc.ccViewsTitle;
+      document.getElementById('langLabel').textContent = loc.langSwitch;
+      document.getElementById('todayLabel').textContent = loc.today;
+      document.querySelectorAll('[data-label]').forEach(el => {
+        el.textContent = loc.views[el.dataset.label];
+      });
+      document.getElementById('cancelBtn').textContent = loc.cancel;
+      document.getElementById('saveBtn').textContent = loc.add;
+      document.getElementById('taskInput').placeholder = loc.taskPlaceholder;
+      document.getElementById('noteInput').placeholder = loc.notePlaceholder;
+      document.getElementById('dailyLabel').textContent = loc.dailyToggle;
+      document.getElementById('focusLabel').textContent = loc.focusToggle;
+    }
+
+    function render() {
+      const loc = t();
+      const d = parseISO(selectedDate);
+      const sub = document.getElementById('subLabel');
+      const title = document.getElementById('mainTitle');
+      const fab = document.getElementById('openSheetBtn');
+      document.getElementById('ccCurrentBadge').textContent = loc.views[currentView];
+
+      if (currentView === 'day') {
+        sub.textContent = loc.formatDate(d.getFullYear(), d.getMonth() + 1, d.getDate(), loc.dows[d.getDay()]);
+        title.textContent = selectedDate === toISO(new Date())
+          ? loc.todayPlan
+          : `${loc.formatShortDate(d.getMonth() + 1, d.getDate())} ${loc.planSuffix}`.trim();
+        fab.style.display = 'flex';
+        renderDayView();
+      } else if (currentView === 'week') {
+        sub.textContent = `${d.getFullYear()} ${loc.weekPrefix} ${getWeekNumber(d)} ${loc.weekSuffix}`.trim();
+        title.textContent = loc.views.week;
+        fab.style.display = 'flex';
+        renderWeekView();
+      } else if (currentView === 'month') {
+        sub.textContent = `${calYear}`;
+        title.textContent = `${calMonth + 1}${loc.monthSuffix}`;
+        fab.style.display = 'flex';
+        renderMonthView();
+      } else if (currentView === 'year') {
+        sub.textContent = loc.yearSub;
+        title.textContent = `${calYear} ${loc.yearTitle}`.trim();
+        fab.style.display = 'none';
+        renderYearView();
+      }
+    }
+
+    // 1. 純淨「今天」主視圖（無日期條，僅待辦清單 + 隨手日記）
+    function renderDayView() {
+      const loc = t();
+      const store = loadStore();
+      const rec = getDayRecord(store, selectedDate);
+      const combined = getCombinedTasks(store, selectedDate);
+
+      const sorted = [...combined].sort((a, b) => (a.done - b.done) || (b.focus - a.focus));
+      const doneCount = combined.filter(x => x.done).length;
+      const undoneCount = combined.length - doneCount;
+
+      const tasksHTML = sorted.length ? sorted.map(item => `
+        <div class="task-item ${item.done ? 'done' : ''}">
+          <div class="check-btn" onclick="toggleTask(${item.id}, ${item.daily})">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="task-info" onclick="toggleTask(${item.id}, ${item.daily})">
+            <div class="task-title">${item.focus ? '<span class="focus-star">★</span>' : ''}${escapeHTML(item.title)}</div>
+            <div class="task-meta-row">
+              ${item.daily ? `<span class="daily-tag">↻ ${loc.dailyBadge}</span>` : ''}
+              ${item.note ? `<span class="task-note">${escapeHTML(item.note)}</span>` : ''}
+            </div>
+          </div>
+          <button class="del-btn" onclick="deleteTask(${item.id}, ${item.daily})">✕</button>
+        </div>
+      `).join('') : `<div class="empty-state">${loc.emptyTasks}</div>`;
+
+      const moodHTML = store.moods.map((m, idx) => `
+        <button class="mood-chip ${rec.mood === m ? 'active' : ''}"
+                onclick="setMood('${escapeAttr(m)}')"
+                ondblclick="removeCustomMood(${idx})">${escapeHTML(m)}</button>
+      `).join('') + `<button class="mood-chip mood-add" onclick="addCustomMood()">＋</button>`;
+
+      document.getElementById('appContent').innerHTML = `
+        <div class="section-header">
+          <span class="section-title">${loc.todoTitle}</span>
+          <div class="section-actions">
+            ${undoneCount > 0 ? `<button class="defer-btn" onclick="deferTasksToTomorrow()">${loc.deferBtn}</button>` : ''}
+            <span class="section-badge">${doneCount}/${combined.length}</span>
+          </div>
+        </div>
+        <div class="ios-list glass-surface">${tasksHTML}</div>
+
+        <div class="section-header">
+          <span class="section-title">${loc.journalTitle}</span>
+          <span class="section-badge" id="saveStatus">${loc.autoSaved}</span>
+        </div>
+        <div class="journal-card glass-surface">
+          <div class="mood-bar">${moodHTML}</div>
+          <textarea class="journal-textarea" id="journalBox" placeholder="${loc.journalPlaceholder}">${escapeHTML(rec.journal || '')}</textarea>
+          <div class="journal-footer">
+            <span>${loc.journalTitle}</span>
+            <span id="charCount">${loc.chars((rec.journal || '').length)}</span>
+          </div>
+        </div>
+      `;
+
+      const box = document.getElementById('journalBox');
+      box.addEventListener('input', () => {
+        const s = loadStore();
+        const r = getDayRecord(s, selectedDate);
+        r.journal = box.value;
+        saveStore(s);
+        document.getElementById('charCount').textContent = t().chars(box.value.length);
+        document.getElementById('saveStatus').textContent = t().savedToast;
+      });
+    }
+
+    function renderWeekView() {
+      const loc = t();
+      const store = loadStore();
+      const base = parseISO(selectedDate);
+      const dayOfWeek = base.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(base);
+      monday.setDate(base.getDate() + mondayOffset);
+
+      let html = '';
+      for (let i = 0; i < 7; i++) {
+        const dt = new Date(monday);
+        dt.setDate(monday.getDate() + i);
+        const iso = toISO(dt);
+        const rec = store.days[iso] || { journal: '', mood: '' };
+        const items = getCombinedTasks(store, iso);
+        const done = items.filter(x => x.done).length;
+        const previewTasks = items.slice(0, 2).map(x => `${x.done ? '✓' : '○'} ${x.title}`).join(' ');
+        const snippet = rec.journal ? rec.journal.trim().split('\n')[0].slice(0, 28) : '';
+
+        html += `
+          <div class="week-card glass-surface" onclick="jumpToDay('${iso}')">
+            <div class="week-card-head">
+              <span class="week-card-title">${loc.weekDows[i]} · ${loc.formatShortDate(dt.getMonth() + 1, dt.getDate())} ${rec.mood || ''}</span>
+              <span class="week-card-count">${items.length ? loc.items(done, items.length) : loc.noTask}</span>
+            </div>
+            <div class="week-preview">
+              ${previewTasks ? `<div>${escapeHTML(previewTasks)}</div>` : ''}
+              ${snippet ? `<div style="color:var(--purple);margin-top:3px;">✎ ${escapeHTML(snippet)}...</div>` : ''}
+              ${!previewTasks && !snippet ? loc.clickPlan : ''}
+            </div>
+          </div>
+        `;
+      }
+      document.getElementById('appContent').innerHTML = html;
+    }
+
+    function renderMonthView() {
+      const loc = t();
+      const store = loadStore();
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+      let cells = loc.dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+      for (let i = 0; i < firstDay; i++) cells += `<div class="cal-cell empty"></div>`;
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const iso = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const rec = store.days[iso];
+        const hasTask = getCombinedTasks(store, iso).length > 0;
+        const hasJournal = rec && rec.journal && rec.journal.trim().length > 0;
+
+        cells += `
+          <div class="cal-cell ${iso === selectedDate ? 'selected' : ''}" onclick="selectMonthDay('${iso}')">
+            <span>${day}</span>
+            <div class="cal-dots">
+              ${hasTask ? '<span class="cal-dot-task"></span>' : ''}
+              ${hasJournal ? '<span class="cal-dot-note"></span>' : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      const selRec = store.days[selectedDate] || { journal: '', mood: '' };
+      const selItems = getCombinedTasks(store, selectedDate);
+      const selDone = selItems.filter(x => x.done).length;
+      const selDateObj = parseISO(selectedDate);
+
+      document.getElementById('appContent').innerHTML = `
+        <div class="calendar-card glass-surface">
+          <div class="cal-nav">
+            <button onclick="changeMonth(-1)">‹</button>
+            <strong>${calYear} / ${calMonth + 1}</strong>
+            <button onclick="changeMonth(1)">›</button>
+          </div>
+          <div class="cal-grid">${cells}</div>
+          <div style="display:flex;gap:14px;justify-content:center;margin-top:12px;font-size:11px;color:var(--text-secondary);">
+            <span><i style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;"></i>${loc.hasPlan}</span>
+            <span><i style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);margin-right:4px;"></i>${loc.hasJournal}</span>
+          </div>
+        </div>
+
+        <div class="week-card glass-surface" onclick="jumpToDay('${selectedDate}')">
+          <div class="week-card-head">
+            <span class="week-card-title">${loc.formatShortDate(selDateObj.getMonth() + 1, selDateObj.getDate())} ${loc.summaryPrefix} ${selRec.mood || ''}</span>
+            <span style="color:var(--accent);font-size:13px;font-weight:600;">${loc.openDay}</span>
+          </div>
+          <div class="week-preview">
+            <div>${loc.tasksSummary(selDone, selItems.length)}</div>
+            <div style="margin-top:4px;">${escapeHTML(loc.journalSummary(selRec.journal ? selRec.journal.slice(0, 45) : ''))}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderYearView() {
+      const loc = t();
+      const store = loadStore();
+      let gridHTML = '<div class="year-grid">';
+
+      for (let m = 0; m < 12; m++) {
+        const prefix = `${calYear}-${String(m + 1).padStart(2, '0')}`;
+        let taskCount = 0;
+        let journalDays = 0;
+
+        Object.keys(store.days).forEach(k => {
+          if (k.startsWith(prefix)) {
+            taskCount += (store.days[k].tasks || []).length + (store.dailyHabits || []).length;
+            if (store.days[k].journal && store.days[k].journal.trim()) journalDays++;
+          }
+        });
+
+        gridHTML += `
+          <div class="month-box glass-surface" onclick="jumpToMonth(${m})">
+            <h3>${m + 1}${loc.monthSuffix}</h3>
+            <p>${loc.monthStats(taskCount, journalDays)}</p>
+          </div>
+        `;
+      }
+      gridHTML += '</div>';
+
+      const yearGoal = (store.goals && store.goals[calYear]) || '';
+
+      document.getElementById('appContent').innerHTML = `
+        <div class="cal-nav glass-surface" style="padding:10px 14px;margin-bottom:14px;">
+          <button onclick="changeYear(-1)">‹</button>
+          <strong>${calYear}</strong>
+          <button onclick="changeYear(1)">›</button>
+        </div>
+        ${gridHTML}
+        <div class="section-header">
+          <span class="section-title">${loc.yearGoalTitle}</span>
+        </div>
+        <div class="journal-card glass-surface">
+          <textarea class="journal-textarea" style="min-height:100px;" id="yearGoalBox" placeholder="${loc.yearGoalPlaceholder}">${escapeHTML(yearGoal)}</textarea>
+        </div>
+      `;
+
+      const yBox = document.getElementById('yearGoalBox');
+      yBox.addEventListener('input', () => {
+        const s = loadStore();
+        if (!s.goals) s.goals = {};
+        s.goals[calYear] = yBox.value;
+        saveStore(s);
+      });
+    }
+
+    window.deferTasksToTomorrow = () => {
+      const store = loadStore();
+      const rec = getDayRecord(store, selectedDate);
+      const undoneNormal = (rec.tasks || []).filter(x => !x.done);
+      const undoneHabits = (store.dailyHabits || []).filter(h => !rec.doneHabits.includes(h.id));
+      const totalMoved = undoneNormal.length + undoneHabits.length;
+      if (!totalMoved) return;
+
+      const nextDate = parseISO(selectedDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const nextISO = toISO(nextDate);
+      const nextRec = getDayRecord(store, nextISO);
+
+      rec.tasks = (rec.tasks || []).filter(x => x.done);
+      undoneNormal.forEach((x, idx) => {
+        nextRec.tasks.push({ ...x, id: Date.now() + idx });
+      });
+      undoneHabits.forEach((h, idx) => {
+        nextRec.tasks.push({ id: Date.now() + 100 + idx, title: h.title, note: h.note || '', focus: !!h.focus, done: false });
+      });
+
+      saveStore(store);
+      render();
+      showToast(t().deferredToast(totalMoved));
+    };
+
+    window.addCustomMood = () => {
+      const text = prompt(t().addMoodPrompt);
+      if (!text || !text.trim()) return;
+      const store = loadStore();
+      const label = text.trim().slice(0, 14);
+      if (!store.moods.includes(label)) store.moods.push(label);
+      const rec = getDayRecord(store, selectedDate);
+      rec.mood = label;
+      saveStore(store);
+      renderDayView();
+    };
+
+    window.removeCustomMood = (idx) => {
+      const store = loadStore();
+      if (store.moods.length <= 1) return;
+      const removed = store.moods[idx];
+      if (confirm(t().delMoodConfirm(removed))) {
+        store.moods.splice(idx, 1);
+        saveStore(store);
+        renderDayView();
+      }
+    };
+
+    window.selectMonthDay = (iso) => { selectedDate = iso; renderMonthView(); };
+    window.jumpToDay = (iso) => {
+      selectedDate = iso;
+      currentView = 'day';
+      document.querySelectorAll('.cc-tile').forEach(b => b.classList.toggle('active', b.dataset.view === 'day'));
+      render();
+    };
+    window.jumpToMonth = (m) => {
+      calMonth = m;
+      currentView = 'month';
+      document.querySelectorAll('.cc-tile').forEach(b => b.classList.toggle('active', b.dataset.view === 'month'));
+      render();
+    };
+    window.changeMonth = (delta) => {
+      calMonth += delta;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderMonthView();
+    };
+    window.changeYear = (delta) => { calYear += delta; renderYearView(); };
+
+    window.toggleTask = (id, isDailyItem) => {
+      const store = loadStore();
+      const rec = getDayRecord(store, selectedDate);
+      if (isDailyItem) {
+        const idx = rec.doneHabits.indexOf(id);
+        if (idx >= 0) rec.doneHabits.splice(idx, 1);
+        else rec.doneHabits.push(id);
+      } else {
+        const item = rec.tasks.find(x => x.id === id);
+        if (item) item.done = !item.done;
+      }
+      saveStore(store);
+      render();
+    };
+
+    window.deleteTask = (id, isDailyItem) => {
+      const store = loadStore();
+      if (isDailyItem) {
+        store.dailyHabits = (store.dailyHabits || []).filter(h => h.id !== id);
+      } else {
+        const rec = getDayRecord(store, selectedDate);
+        rec.tasks = (rec.tasks || []).filter(x => x.id !== id);
+      }
+      saveStore(store);
+      render();
+    };
+
+    window.setMood = (m) => {
+      const store = loadStore();
+      const rec = getDayRecord(store, selectedDate);
+      rec.mood = rec.mood === m ? '' : m;
+      saveStore(store);
+      renderDayView();
+    };
+
+    function getWeekNumber(d) {
+      const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    }
+
+    const escapeHTML = (str) => String(str).replace(/[&<>'"]/g, tag => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag]));
+    const escapeAttr = (str) => String(str)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+    // Sheet
+    const focusToggle = document.getElementById('focusToggle');
+    const dailyToggle = document.getElementById('dailyToggle');
+
+    const closeSheet = () => {
+      sheet.classList.remove('open');
+      isFocus = false;
+      isDaily = false;
+      focusToggle.classList.remove('on', 'orange');
+      dailyToggle.classList.remove('on', 'blue');
+      if (!ccOpen) backdrop.classList.remove('open');
+      document.getElementById('taskInput').blur();
+    };
+
+    document.getElementById('openSheetBtn').onclick = () => {
+      setCC(false);
+      const d = parseISO(selectedDate);
+      document.getElementById('sheetTitle').textContent = `${t().newTask} · ${t().formatShortDate(d.getMonth() + 1, d.getDate())}`;
+      sheet.classList.add('open');
+      backdrop.classList.add('open');
+      setTimeout(() => document.getElementById('taskInput').focus(), 200);
+    };
+
+    document.getElementById('cancelBtn').onclick = closeSheet;
+
+    focusToggle.onclick = () => {
+      isFocus = !isFocus;
+      focusToggle.classList.toggle('on', isFocus);
+      focusToggle.classList.toggle('orange', isFocus);
+    };
+
+    dailyToggle.onclick = () => {
+      isDaily = !isDaily;
+      dailyToggle.classList.toggle('on', isDaily);
+      dailyToggle.classList.toggle('blue', isDaily);
+    };
+
+    document.getElementById('saveBtn').onclick = () => {
+      const title = document.getElementById('taskInput').value.trim();
+      const note = document.getElementById('noteInput').value.trim();
+      if (!title) return;
+
+      const store = loadStore();
+      if (isDaily) {
+        store.dailyHabits.push({ id: Date.now(), title, note, focus: isFocus });
+      } else {
+        const rec = getDayRecord(store, selectedDate);
+        rec.tasks.push({ id: Date.now(), title, note, focus: isFocus, done: false });
+      }
+      saveStore(store);
+
+      document.getElementById('taskInput').value = '';
+      document.getElementById('noteInput').value = '';
+      isFocus = false;
+      isDaily = false;
+      focusToggle.classList.remove('on', 'orange');
+      dailyToggle.classList.remove('on', 'blue');
+      closeSheet();
+      render();
+    };
+
+    selectedDate = toISO(new Date());
+    currentView = 'day';
+    applyStaticI18n();
+    render();
+  </script>
+</body>
+</html>
